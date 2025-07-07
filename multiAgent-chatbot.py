@@ -1,13 +1,14 @@
 from langgraph.graph import StateGraph, START, END
-from langgraph.graph.message import add_messages
+from langgraph.graph.message import add_messages, AnyMessage
 from langchain.chat_models import init_chat_model
-from langchain.schema import HumanMessage
-from typing import Annotated, Literal, List
+from langchain.schema import SystemMessage, HumanMessage
+from typing import Annotated, Literal
 from pydantic_test import BaseModel, Field
 from typing_extensions import TypedDict
 from dotenv import load_dotenv
 from langchain_core.tools import tool
 from langgraph.prebuilt import tools_condition, ToolNode
+from IPython.display import display, Image
 
 load_dotenv(override=True)
 
@@ -23,7 +24,7 @@ class MessageClassifier(BaseModel):
 
 # Define the shared state
 class State(TypedDict):
-    messages: Annotated[List, add_messages]
+    messages: Annotated[list[AnyMessage], add_messages]
     message_type: str | None
     next: str | None
 
@@ -72,7 +73,15 @@ def router(state: State):
 # Logical agent response
 def logical_agent(state: State):
     llm_with_tools = llm.bind_tools(tool_list)
-    response = llm_with_tools.invoke(state["messages"])
+    response = llm_with_tools.invoke([
+        SystemMessage(content=
+        """You are a logical, fact‑driven assistant.
+        - Provide step‑by‑step reasoning.
+        - If a tool returns a more accurate answer, call it first (use JSON args).
+        - Otherwise reply concisely."""
+        ),
+        *state["messages"]
+    ])
     return {"messages": [response]}
 
 # Therapist (emotional) agent response
@@ -85,7 +94,6 @@ def therapist_agent(state: State):
                 Adapt your tone based on the user's mood. Prioritize emotional support, encouragement, and understanding.
             """
         },
-
         state["messages"][-1]
     ])
     return {"messages": [response]}
@@ -139,5 +147,11 @@ def run_chatbot():
         assistant_msg = state["messages"][-1].content
         print("Assistant:", assistant_msg)
 
+def draw_graph():
+    with open("langgraph_diagram.png", "wb") as f:
+        f.write(graph.get_graph().draw_mermaid_png())
+
 if __name__ == "__main__":
     run_chatbot()
+    draw_graph()
+

@@ -7,5 +7,4 @@ class Person(BaseModel):
     salary: Optional[float] = None
 
 p = Person(id="1", name="saud", salary=1800)
-print(p.model_json_schema())
 
