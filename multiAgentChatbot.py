@@ -1,5 +1,4 @@
 from langgraph.graph import StateGraph, START, END
-from langgraph.types import Command
 from langgraph.graph.message import add_messages, AnyMessage
 from langchain.chat_models import init_chat_model
 from langchain.schema import SystemMessage, HumanMessage, AIMessage
@@ -133,20 +132,22 @@ graph = builder.compile(checkpointer=memory)
 def run_chatbot():
     state = {"messages": [], "message_type": None, "next": None}
     while True:
-        user = input("User: ").strip()
-        if user.lower() in ("exit", "quit"):
+        user_input = input("User: ")
+        if user_input.lower().strip() in ("exit", "quit"):
             print("Assistant: Goodbye!")
             break
 
-        state["messages"].append(HumanMessage(content=user))
+        state["messages"].append(HumanMessage(content=user_input))
         state = graph.invoke(state, config=configuration)
 
         print(f"Assistant: {state['messages'][-1].content}")
+
 
 def draw_graph():
     with open("langgraph_diagram.png", "wb") as f:
         f.write(graph.get_graph().draw_mermaid_png())
 
-if __name__ == "__main__":
+if __name__=="__main__":
     run_chatbot()
-    draw_graph()
+
+
